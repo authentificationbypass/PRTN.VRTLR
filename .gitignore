@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build artifacts
+build/
+dist/
+*.spec
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local app data and sensitive information
+data/
+*.json
+!requirements.txt
+
+# Secrets and environment config
+.env
+.env.*
+secrets/
+*.pem
+*.key
+
+# Logs
+*.log

@@ -1,0 +1,128 @@
+QWidget {
+    color: #1d2430;
+    font-family: "Segoe UI", sans-serif;
+    font-size: 13px;
+}
+
+QMainWindow {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+        stop:0 #f5f7fb, stop:0.5 #eef3f9, stop:1 #e9eef3);
+}
+
+QFrame#Card {
+    background-color: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(108, 132, 175, 0.22);
+    border-radius: 0px;
+}
+
+QLabel#Title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #122033;
+}
+
+QLabel#Subtitle {
+    font-size: 13px;
+    color: #425267;
+}
+
+QLabel#Section {
+    font-size: 14px;
+    font-weight: 600;
+    color: #283a52;
+}
+
+QLineEdit,
+QTextEdit,
+QComboBox,
+QSpinBox,
+QTableWidget,
+QMessageBox {
+    background: #ffffff;
+    border: 1px solid #c9d3e1;
+    border-radius: 0px;
+    padding: 7px;
+}
+
+QLineEdit:focus,
+QTextEdit:focus,
+QComboBox:focus,
+QTableWidget:focus {
+    border: 1px solid #3967c4;
+}
+
+QPushButton {
+    border: 1px solid #c9d3e1;
+    border-radius: 0px;
+    background: #dfe8f5;
+    color: #1a2a42;
+    padding: 8px 14px;
+    font-weight: 600;
+}
+
+QPushButton:hover {
+    background: #d2deef;
+}
+
+QPushButton:pressed {
+    background: #c4d2eb;
+}
+
+QPushButton#PrimaryButton {
+    background: #3a8d76;
+    color: #ffffff;
+    border: 1px solid #3a8d76;
+}
+
+QPushButton#PrimaryButton:hover {
+    background: #2d7665;
+}
+
+QPushButton#PrimaryButton:disabled {
+    background: #9dc6bb;
+    color: #edf8f5;
+}
+
+QHeaderView::section {
+    background: #e8eef9;
+    color: #253654;
+    border: none;
+    border-right: 1px solid #d8e1f1;
+    padding: 7px;
+    font-weight: 600;
+}
+
+QProgressBar {
+    border: 1px solid #c9d3e1;
+    border-radius: 0px;
+    text-align: center;
+    background: #f5f8fd;
+}
+
+QProgressBar::chunk {
+    border-radius: 0px;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #4b72d0, stop:1 #4aa7c2);
+}
+
+QMessageBox {
+    background: #111827;
+    color: #f8fafc;
+}
+
+QMessageBox QLabel,
+QMessageBox QDialogButtonBox,
+QMessageBox QPushButton,
+QMessageBox QAbstractButton {
+    color: #f8fafc;
+}
+
+QMessageBox QPushButton {
+    background: #e5e7eb;
+    color: #111827;
+    border: 1px solid #d1d5db;
+}
+
+QMessageBox QPushButton:hover {
+    background: #f3f4f6;
+}
