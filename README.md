@@ -1,6 +1,6 @@
 # Proton Verteiler
 
-![Proton Verteiler V3](pic/PRTNRM.png)
+![Proton Verteiler V3](pic/PRTNVRTLRRM.png)
 
 Diese Version ist speziell für Proton Mail Bridge ausgelegt.
 
