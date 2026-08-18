@@ -1,4 +1,4 @@
-# Proton Verteiler V3
+# Proton Verteiler
 
 ![Proton Verteiler V3](pic/PRTNRM.png)
 
