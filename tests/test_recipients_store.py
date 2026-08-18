@@ -90,7 +90,7 @@ class RecipientsStoreGroupTests(unittest.TestCase):
                 {
                     "name": "Projekt",
                     "recipients": [
-                        {"name": "Bert", "email": "bert@example.com"},
+                        {"name": "Bert", "email": "Hbert@example.com"},
                     ],
                 },
             ])
@@ -101,20 +101,23 @@ class RecipientsStoreGroupTests(unittest.TestCase):
             )
             self.assertEqual(
                 store.load_group("Projekt"),
-                [{"name": "Bert", "email": "bert@example.com"}],
+                [{"name": "Bert", "email": "Hbert@example.com"}],
             )
 
-    def test_settings_store_keeps_sender_data_out_of_persistent_storage(self):
+    def test_settings_store_persists_sender_data(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "settings.json"
             store = SettingsStore(path)
 
             store.save({
-                "sender_addresses": ["user@example.com"],
-                "last_sender": "user@example.com",
+                "sender_addresses": ["user@example.com", "hilfe@example.com"],
+                "last_sender": "hilfe@example.com",
             })
 
-            self.assertEqual(store.load(), {"sender_addresses": [], "last_sender": ""})
+            self.assertEqual(store.load(), {
+                "sender_addresses": ["user@example.com", "hilfe@example.com"],
+                "last_sender": "hilfe@example.com",
+            })
 
     def test_validate_smtp_target_rejects_non_local_hosts(self):
         with self.assertRaises(ValueError):
