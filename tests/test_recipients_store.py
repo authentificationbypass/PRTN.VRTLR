@@ -120,6 +120,25 @@ class RecipientsStoreGroupTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_smtp_target("smtp.gmail.com", 587)
 
+    def test_find_project_icon_path(self):
+        from src.main import get_app_icon_path
+
+        project_root = Path(__file__).resolve().parent.parent
+        icon_path = get_app_icon_path(project_root)
+
+        self.assertTrue(icon_path is not None)
+        self.assertTrue(icon_path.exists())
+        self.assertEqual(icon_path.name, "PRTN.MV.ico")
+
+    def test_get_app_data_dir_is_portable(self):
+        from src.main import get_app_data_dir
+
+        project_root = Path(__file__).resolve().parent.parent
+        data_dir = get_app_data_dir(project_root)
+
+        self.assertTrue(data_dir.name == "data")
+        self.assertTrue(str(data_dir).endswith("data") or str(data_dir).endswith("Proton Verteiler V3"))
+
 
 if __name__ == "__main__":
     unittest.main()
