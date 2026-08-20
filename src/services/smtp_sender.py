@@ -15,6 +15,7 @@ class SendResult:
     recipient: str
     ok: bool
     error: str = ""
+    attempts: int = 1
 
 
 def validate_smtp_target(host: str, port: int) -> None:
@@ -49,9 +50,13 @@ def send_batch(
     subject: str,
     body: str,
     progress_cb=None,
+    max_retries: int = 2,
 ) -> list[SendResult]:
     if not recipients:
         return []
+
+    if max_retries < 0:
+        raise ValueError("max_retries muss 0 oder größer sein.")
 
     validate_smtp_target(host, port)
 
@@ -64,21 +69,35 @@ def send_batch(
 
         total = len(recipients)
         for idx, recipient in enumerate(recipients, start=1):
-            message = EmailMessage()
-            message["From"] = sender
-            message["To"] = recipient
-            message["Subject"] = subject
-            message.set_content(body)
+            attempts = 0
+            last_error = ""
+            for attempt in range(1, max_retries + 2):
+                attempts = attempt
+                message = EmailMessage()
+                message["From"] = sender
+                message["To"] = recipient
+                message["Subject"] = subject
+                message.set_content(body)
 
-            try:
-                smtp.send_message(message)
-                results.append(SendResult(recipient=recipient, ok=True))
-                if progress_cb:
-                    progress_cb(idx, total, f"Gesendet an {recipient}")
-            except smtplib.SMTPException as exc:
-                results.append(SendResult(recipient=recipient, ok=False, error=str(exc)))
-                if progress_cb:
-                    progress_cb(idx, total, f"Fehler bei {recipient}: {exc}")
+                try:
+                    smtp.send_message(message)
+                    results.append(SendResult(recipient=recipient, ok=True, attempts=attempts))
+                    if progress_cb:
+                        progress_cb(idx, total, f"Gesendet an {recipient} (Versuch {attempt})")
+                    break
+                except Exception as exc:  # noqa: BLE001 - retry logic needs to treat transport issues generically
+                    last_error = str(exc)
+                    if attempt > max_retries:
+                        results.append(SendResult(recipient=recipient, ok=False, error=last_error, attempts=attempts))
+                        if progress_cb:
+                            progress_cb(idx, total, f"Fehler bei {recipient} nach {attempt} Versuch(en): {exc}")
+                        break
+                    if progress_cb:
+                        progress_cb(idx, total, f"Versuch {attempt} für {recipient} fehlgeschlagen, wiederhole ...")
+
+            if not any(item.recipient == recipient and item.ok for item in results):
+                if not any(item.recipient == recipient for item in results):
+                    results.append(SendResult(recipient=recipient, ok=False, error=last_error or "Unbekannter Fehler", attempts=attempts))
 
         smtp.quit()
         return results

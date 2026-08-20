@@ -5,7 +5,7 @@ from pathlib import Path
 
 from src.services.recipients_store import RecipientsStore
 from src.services.settings_store import SettingsStore
-from src.services.smtp_sender import validate_smtp_target
+from src.services.smtp_sender import SendResult, send_batch, validate_smtp_target
 
 
 class RecipientsStoreGroupTests(unittest.TestCase):
@@ -141,6 +141,70 @@ class RecipientsStoreGroupTests(unittest.TestCase):
 
         self.assertTrue(data_dir.name == "data")
         self.assertTrue(str(data_dir).endswith("data") or str(data_dir).endswith("Proton Verteiler V3"))
+
+
+class SmtpRetryTests(unittest.TestCase):
+    def test_send_batch_retries_failed_recipients_and_reports_attempts(self):
+        class FakeSMTP:
+            def __init__(self, host, port, timeout):
+                self.host = host
+                self.port = port
+                self.timeout = timeout
+                self.sent = []
+
+            def starttls(self):
+                return None
+
+            def login(self, username, password):
+                self.username = username
+                self.password = password
+
+            def send_message(self, message):
+                recipient = message["To"]
+                if recipient == "first@example.com" and len(self.sent) == 0:
+                    self.sent.append("failed")
+                    raise RuntimeError("temporary send failure")
+                if recipient == "second@example.com":
+                    self.sent.append("failed")
+                    raise RuntimeError("permanent failing recipient")
+                self.sent.append("ok")
+
+            def quit(self):
+                return None
+
+        class FakeSMTPFactory:
+            instance = None
+
+            @staticmethod
+            def create(*args, **kwargs):
+                FakeSMTPFactory.instance = FakeSMTP(*args, **kwargs)
+                return FakeSMTPFactory.instance
+
+        original_factory = __import__("src.services.smtp_sender", fromlist=["smtplib"]).smtplib.SMTP
+        import src.services.smtp_sender as smtp_sender_module
+        smtp_sender_module.smtplib.SMTP = FakeSMTPFactory.create
+        try:
+            results = send_batch(
+                host="127.0.0.1",
+                port=1025,
+                username="bridge-user",
+                password="bridge-pass",
+                sender="sender@example.com",
+                recipients=["first@example.com", "second@example.com"],
+                subject="Test",
+                body="Hallo",
+                max_retries=1,
+            )
+        finally:
+            smtp_sender_module.smtplib.SMTP = original_factory
+
+        self.assertEqual(len(results), 2)
+        first = next(result for result in results if result.recipient == "first@example.com")
+        second = next(result for result in results if result.recipient == "second@example.com")
+        self.assertTrue(first.ok)
+        self.assertEqual(first.attempts, 2)
+        self.assertFalse(second.ok)
+        self.assertEqual(second.attempts, 2)
 
 
 if __name__ == "__main__":

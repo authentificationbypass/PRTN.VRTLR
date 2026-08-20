@@ -50,12 +50,14 @@ class SendWorker(QObject):
         recipients: list[str],
         subject: str,
         body: str,
+        max_retries: int = 2,
     ) -> None:
         super().__init__()
         self._credentials = credentials
         self._recipients = recipients
         self._subject = subject
         self._body = body
+        self._max_retries = max_retries
 
     def run(self) -> None:
         try:
@@ -69,6 +71,7 @@ class SendWorker(QObject):
                 subject=self._subject,
                 body=self._body,
                 progress_cb=lambda i, t, m: self.progress.emit(i, t, m),
+                max_retries=self._max_retries,
             )
             self.completed.emit(results)
         except SMTPServiceError as exc:
@@ -504,7 +507,7 @@ class MainWindow(QMainWindow):
         )
 
         thread = QThread(self)
-        worker = SendWorker(runtime, recipient_emails, subject, body)
+        worker = SendWorker(runtime, recipient_emails, subject, body, max_retries=2)
         worker.moveToThread(thread)
 
         thread.started.connect(worker.run)
@@ -531,7 +534,11 @@ class MainWindow(QMainWindow):
         failed = sum(1 for item in results if not item.ok)
         self._log_output.append(f"Versand abgeschlossen: {success} erfolgreich, {failed} fehlgeschlagen.")
         if failed:
-            details = "\n".join(f"{item.recipient}: {item.error or 'Fehler'}" for item in results if not item.ok)
+            details = "\n".join(
+                f"{item.recipient}: {item.error or 'Fehler'} (Versuche: {item.attempts})"
+                for item in results
+                if not item.ok
+            )
             QMessageBox.warning(self, "Versand beendet", f"Einige E-Mails konnten nicht versendet werden:\n{details[:1200]}")
         else:
             QMessageBox.information(self, "Versand beendet", f"Alle {success} E-Mails wurden erfolgreich versendet.")
