@@ -61,6 +61,7 @@ def send_batch(
     validate_smtp_target(host, port)
 
     results: list[SendResult] = []
+    smtp = None
 
     try:
         smtp = smtplib.SMTP(host=host, port=port, timeout=20)
@@ -99,7 +100,6 @@ def send_batch(
                 if not any(item.recipient == recipient for item in results):
                     results.append(SendResult(recipient=recipient, ok=False, error=last_error or "Unbekannter Fehler", attempts=attempts))
 
-        smtp.quit()
         return results
     except ValueError:
         raise
@@ -107,3 +107,12 @@ def send_batch(
         raise SMTPServiceError("SMTP-Login fehlgeschlagen. Benutzername / Passwort / Bridge-Login prüfen.") from exc
     except (OSError, smtplib.SMTPException) as exc:
         raise SMTPServiceError(f"Verbindung zur Proton Mail Bridge fehlgeschlagen: {exc}") from exc
+    finally:
+        if smtp is not None:
+            try:
+                smtp.quit()
+            except Exception:  # noqa: BLE001 - connection shutdown should never break result reporting
+                try:
+                    smtp.close()
+                except Exception:  # noqa: BLE001
+                    pass

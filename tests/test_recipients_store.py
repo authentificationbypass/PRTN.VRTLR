@@ -144,6 +144,56 @@ class RecipientsStoreGroupTests(unittest.TestCase):
 
 
 class SmtpRetryTests(unittest.TestCase):
+    def test_send_batch_does_not_fail_when_quit_raises(self):
+        class FakeSMTP:
+            def __init__(self, host, port, timeout):
+                self.host = host
+                self.port = port
+                self.timeout = timeout
+                self.sent = []
+
+            def starttls(self):
+                return None
+
+            def login(self, username, password):
+                self.username = username
+                self.password = password
+
+            def send_message(self, message):
+                self.sent.append(message["To"])
+
+            def quit(self):
+                raise RuntimeError("connection shutdown failed")
+
+        class FakeSMTPFactory:
+            instance = None
+
+            @staticmethod
+            def create(*args, **kwargs):
+                FakeSMTPFactory.instance = FakeSMTP(*args, **kwargs)
+                return FakeSMTPFactory.instance
+
+        original_factory = __import__("src.services.smtp_sender", fromlist=["smtplib"]).smtplib.SMTP
+        import src.services.smtp_sender as smtp_sender_module
+        smtp_sender_module.smtplib.SMTP = FakeSMTPFactory.create
+        try:
+            results = send_batch(
+                host="127.0.0.1",
+                port=1025,
+                username="bridge-user",
+                password="bridge-pass",
+                sender="sender@example.com",
+                recipients=["good@example.com"],
+                subject="Test",
+                body="Hallo",
+                max_retries=0,
+            )
+        finally:
+            smtp_sender_module.smtplib.SMTP = original_factory
+
+        self.assertEqual(len(results), 1)
+        self.assertTrue(results[0].ok)
+
     def test_send_batch_retries_failed_recipients_and_reports_attempts(self):
         class FakeSMTP:
             def __init__(self, host, port, timeout):
