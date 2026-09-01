@@ -15,6 +15,13 @@ class SettingsStore:
     def __init__(self, file_path: Path) -> None:
         self._file_path = file_path
 
+    def _backup_file(self, raw_text: str | None = None) -> None:
+        if not self._file_path.exists():
+            return
+        backup_path = self._file_path.with_name(f"{self._file_path.name}.bak")
+        content = raw_text if raw_text is not None else self._file_path.read_text(encoding="utf-8")
+        backup_path.write_text(content, encoding="utf-8")
+
     def load(self) -> dict[str, Any]:
         if not self._file_path.exists():
             return DEFAULT_SETTINGS.copy()
@@ -23,6 +30,10 @@ class SettingsStore:
             with self._file_path.open("r", encoding="utf-8") as file:
                 raw = json.load(file)
         except (json.JSONDecodeError, OSError):
+            try:
+                self._backup_file()
+            except OSError:
+                pass
             return DEFAULT_SETTINGS.copy()
 
         if not isinstance(raw, dict):
@@ -65,5 +76,7 @@ class SettingsStore:
             "sender_addresses": deduplicated,
             "last_sender": last_sender,
         }
-        with self._file_path.open("w", encoding="utf-8") as file:
+        temp_path = self._file_path.with_suffix(f"{self._file_path.suffix}.tmp")
+        with temp_path.open("w", encoding="utf-8") as file:
             json.dump(payload, file, indent=2, ensure_ascii=False)
+        temp_path.replace(self._file_path)

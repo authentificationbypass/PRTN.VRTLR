@@ -119,6 +119,29 @@ class RecipientsStoreGroupTests(unittest.TestCase):
                 "last_sender": "hilfe@example.com",
             })
 
+    def test_load_groups_handles_corrupt_json_gracefully(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "recipients.json"
+            path.write_text("{not valid json", encoding="utf-8")
+
+            store = RecipientsStore(path)
+
+            self.assertEqual(store.load_groups(), [{"name": "Standard", "recipients": []}])
+            self.assertTrue(path.exists())
+            self.assertTrue((path.parent / "recipients.json.bak").exists())
+
+    def test_settings_store_handles_corrupt_json_gracefully(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "settings.json"
+            path.write_text("{not valid json", encoding="utf-8")
+
+            store = SettingsStore(path)
+
+            self.assertEqual(store.load(), {
+                "sender_addresses": [],
+                "last_sender": "",
+            })
+
     def test_validate_smtp_target_rejects_non_local_hosts(self):
         with self.assertRaises(ValueError):
             validate_smtp_target("smtp.gmail.com", 587)

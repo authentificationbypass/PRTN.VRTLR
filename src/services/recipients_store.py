@@ -11,6 +11,13 @@ class RecipientsStore:
     def __init__(self, file_path: Path) -> None:
         self._file_path = file_path
 
+    def _backup_file(self, raw_text: str | None = None) -> None:
+        if not self._file_path.exists():
+            return
+        backup_path = self._file_path.with_name(f"{self._file_path.name}.bak")
+        content = raw_text if raw_text is not None else self._file_path.read_text(encoding="utf-8")
+        backup_path.write_text(content, encoding="utf-8")
+
     @staticmethod
     def _normalize_group_name(value: str) -> str:
         return str(value or "Standard").strip() or "Standard"
@@ -54,8 +61,15 @@ class RecipientsStore:
         if not self._file_path.exists():
             return [{"name": "Standard", "recipients": []}]
 
-        with self._file_path.open("r", encoding="utf-8") as file:
-            raw = json.load(file)
+        try:
+            with self._file_path.open("r", encoding="utf-8") as file:
+                raw = json.load(file)
+        except (json.JSONDecodeError, OSError):
+            try:
+                self._backup_file()
+            except OSError:
+                pass
+            return [{"name": "Standard", "recipients": []}]
 
         if isinstance(raw, dict):
             raw = raw.get("groups", [])
@@ -136,8 +150,10 @@ class RecipientsStore:
         if not normalized_groups:
             normalized_groups = [{"name": "Standard", "recipients": []}]
 
-        with self._file_path.open("w", encoding="utf-8") as file:
+        temp_path = self._file_path.with_suffix(f"{self._file_path.suffix}.tmp")
+        with temp_path.open("w", encoding="utf-8") as file:
             json.dump(normalized_groups, file, indent=2, ensure_ascii=False)
+        temp_path.replace(self._file_path)
 
     @staticmethod
     def validate(recipients: list[dict[str, str]]) -> tuple[list[str], list[dict[str, str]]]:
