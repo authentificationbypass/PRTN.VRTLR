@@ -37,6 +37,10 @@ class RuntimeCredentials:
     password: str
     sender: str
 
+    def clear_sensitive_data(self) -> None:
+        self.password = ""
+        self.username = ""
+
 
 class SendWorker(QObject):
     progress = Signal(int, int, str)
@@ -79,6 +83,7 @@ class SendWorker(QObject):
         except Exception as exc:  # noqa: BLE001
             self.failed.emit(f"Unerwarteter Fehler: {exc}")
         finally:
+            self._credentials.clear_sensitive_data()
             self.finished.emit()
 
 
