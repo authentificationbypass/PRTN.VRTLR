@@ -217,6 +217,31 @@ class SmtpRetryTests(unittest.TestCase):
         self.assertEqual(len(results), 1)
         self.assertTrue(results[0].ok)
 
+    def test_send_worker_clears_password_after_send(self):
+        import src.ui.main_window as main_window
+        from src.services.smtp_sender import SendResult
+
+        original_send_batch = main_window.send_batch
+
+        def fake_send_batch(**kwargs):
+            self.assertEqual(kwargs["password"], "bridge-pass")
+            return [SendResult(recipient="good@example.com", ok=True)]
+
+        main_window.send_batch = fake_send_batch
+        try:
+            credentials = main_window.RuntimeCredentials(
+                host="127.0.0.1",
+                port=1025,
+                username="bridge-user",
+                password="bridge-pass",
+                sender="sender@example.com",
+            )
+            worker = main_window.SendWorker(credentials, ["good@example.com"], "Test", "Hallo")
+            worker.run()
+            self.assertEqual(credentials.password, "")
+        finally:
+            main_window.send_batch = original_send_batch
+
     def test_send_batch_retries_failed_recipients_and_reports_attempts(self):
         class FakeSMTP:
             def __init__(self, host, port, timeout):
