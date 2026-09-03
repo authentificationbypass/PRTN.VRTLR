@@ -21,6 +21,10 @@ class SMTPCredentials:
     password: str
     sender: str
 
+    def clear_sensitive_data(self) -> None:
+        self.password = ""
+        self.username = ""
+
 
 class CredentialsDialog(QDialog):
     def __init__(self, parent=None) -> None:
@@ -69,10 +73,14 @@ class CredentialsDialog(QDialog):
         self.setLayout(layout)
 
     def credentials(self) -> SMTPCredentials:
-        return SMTPCredentials(
+        password = self._password_input.text()
+        self._password_input.clear()
+
+        credentials = SMTPCredentials(
             host=self._host_input.text().strip() or "127.0.0.1",
             port=self._port_input.value(),
             username=self._username_input.text().strip(),
-            password=self._password_input.text(),
+            password=password,
             sender=self._sender_input.text().strip(),
         )
+        return credentials
